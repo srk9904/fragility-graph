@@ -1,0 +1,68 @@
+========================================
+FRAGILITY GRAPH v5 - VERIFICATION GUIDE
+========================================
+
+Use this guide to validate the risk propagation engine and the visual cues in the dashboard.
+
+1. SCENARIO: Critical Module Analysis (Cascading Failure)
+-------------------------------------------------------
+- INPUT: "services/auth_provider.py"
+- EXPECTED RESULT:
+  * FRAGILITY SCORE: > 85% (High/Critical)
+  * TARGET NODE: Neon Green (audio_core.py)
+  * DOWNSTREAM NODES: At least 2-3 nodes marked as "⚠ CRITICAL" in Red.
+  * EDGES: Hovering over the Red nodes should show high-risk weights (70%+).
+  * CODE TRACE: Click on a Critical node. You should see "Critical Failure" (Dark Red) 
+    highlighting on DB write operations or authentication checks.
+
+2. SCENARIO: Moderate Refactor (Structural Pulse)
+-----------------------------------------------
+- INPUT: "utils/config_loader.py"
+- EXPECTED RESULT:
+  * FRAGILITY SCORE: ~45% - 60%
+  * NODES: Mostly Orange or Yellow. No "CRITICAL" badges.
+  * EDGES: Hovering shows Moderate weights (30-50%).
+  * CODE TRACE: High-precision Yellow and Red highlighting for configuration exports.
+
+3. SCENARIO: Intent-Based Analysis (Proposed Variable Change)
+-----------------------------------------------------------
+- MODE: Switch to "CHANGE" mode.
+- INPUT: "change hop_length from 512 to 1024 in signal_processor.py"
+- EXPECTED RESULT:
+  * INTENT DETECTION: The score should increase due to the "hop_length" keyword.
+  * CODE TRACE: Click the Target node. You should see a "Diff-style" block:
+    - line: "- hop_length = 512" (High Risk Red)
+    - line: "+ hop_length = 1024" (High Risk Red)
+  * This confirms the engine parses the "Intent" string for risk factors.
+
+4. SCENARIO: Documentation Immunity
+----------------------------------
+- INPUT: "README.md" or "TODO.txt"
+- EXPECTED RESULT:
+  * FRAGILITY SCORE: 0%
+  * AI REASONING: Displays "STATIONARY NODE" - Documentation node detected.
+  * GRAPH: Only the target node (Neon Green) with no dependents.
+
+5. SCENARIO: Folder Picker (Project Context)
+------------------------------------------
+- ACTION: Click "Open Folder" in the header.
+- INPUT: "C:/Users/Dell/NewProject"
+- EXPECTED RESULT:
+  * DROPDOWN: "Active: NewProject" appears and is selected.
+  * BADGE: Branding area shows "Project: NewProject".
+  * RE-ANALYSIS: Simulation runs automatically for the new context.
+
+-------------------------------------------------------
+VISUAL COLOR KEY:
+- NEON GREEN: Analysis Target (Source of change)
+- DARK RED / ⚠ CRITICAL: Immediate system instability risk.
+- LIGHT RED: High impact propagation.
+- ORANGE: Moderate dependency risk.
+- YELLOW: Low but detectable risk.
+- CYAN (Hover Edges): Stable propagation.
+
+LEGEND PRIORITY (Code Trace):
+1. Critical Failure (Dark Red) - Highest
+2. High Risk (Red) - High
+3. Medium/Change (Yellow) - Focus of modification
+-------------------------------------------------------

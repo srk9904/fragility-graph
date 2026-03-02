@@ -1,0 +1,22 @@
+{
+    "name": "Normal Auth Flow",
+    "description": "Standard authentication check for a login module.",
+    "input": {
+        "file_path": "services/auth_v1.py",
+        "nodes": [
+            {
+                "name": "verify_login",
+                "complexity": 5,
+                "calls": [
+                    "db_find_user",
+                    "password_hash_check"
+                ]
+            }
+        ]
+    },
+    "expected": {
+        "risk_level": "high",
+        "min_score": 0.8,
+        "max_score": 1.0
+    }
+}

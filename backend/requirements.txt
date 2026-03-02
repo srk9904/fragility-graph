@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+websockets
+neo4j
+redis
+boto3
+torch
+torch-geometric
+pydantic-settings
+python-dotenv

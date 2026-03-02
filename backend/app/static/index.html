@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepPulse | FragilityGraph Enterprise</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Dependency Graph Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-wrapper">
+        <header class="glass-container">
+            <div class="brand">
+                <h1>Fragility <span style="font-weight:300; opacity:0.5">Graph v4</span></h1>
+                <div class="badge-live">Active Analysis</div>
+            </div>
+            
+            <div class="header-controls">
+                <div class="project-management">
+                    <button class="glass-btn" onclick="simulateFolderPicker()">
+                        <span style="font-size: 1.1rem; margin-right: 5px;">📁</span> Open Folder
+                    </button>
+                    <select id="project-selector" class="glass-select">
+                        <option value="fragility-graph">Recent: FragilityGraph</option>
+                        <option value="audio-engine">Recent: AudioEngine-OSS</option>
+                        <option value="ecommerce-backend">Recent: ECommerce-Platform</option>
+                    </select>
+                </div>
+
+                <div class="mode-toggle-container">
+                    <span class="mode-label">Mode:</span>
+                    <div class="toggle-switch" id="analysis-mode-toggle" onclick="toggleAnalysisMode()">
+                        <div id="toggle-knob"></div>
+                        <span id="mode-text">FILE</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <div id="file-input-wrapper" class="input-dynamic-wrapper">
+                    <input type="text" id="file-search" placeholder="Enter Module Path (e.g. services/auth.py)...">
+                </div>
+                <div id="intent-input-wrapper" class="input-dynamic-wrapper" style="display: none;">
+                    <textarea id="intent-search" placeholder="Describe a change (e.g. 'change hop_length from 512 to 1024')..." rows="1"></textarea>
+                </div>
+                <button class="btn-primary analyze-btn" id="analyze-trigger" onclick="triggerSimulation()">
+                    <span class="btn-content">ANALYZE</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Left: Risk Overview -->
+            <div class="panel glass-container">
+                <div class="panel-title">Risk Profile</div>
+                
+                <div class="fragility-display">
+                    <div class="score-circle" id="score-container">
+                        <span id="main-score">--</span>
+                        <span class="score-label">Fragility</span>
+                    </div>
+
+                    <div class="metrics-list">
+                        <div class="metric-item">
+                            <span class="metric-name">Structural Risk</span>
+                            <span class="metric-value" id="val-complexity">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-name">Blast Radius</span>
+                            <span class="metric-value" id="val-impact">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-name">Confidence</span>
+                            <span class="metric-value" id="val-confidence">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Dependency Graph -->
+            <div class="panel glass-container graph-stage">
+                <div id="cy"></div>
+            </div>
+
+            <!-- Right: AI Insights -->
+            <div class="panel glass-container">
+                <div class="panel-title">AI Reasoning</div>
+                <div class="insights-scroll" id="insight-container">
+                    <div style="opacity: 0.3; text-align: center; padding-top: 5rem">
+                        <p>No active trace.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Insight Modal -->
+    <div class="modal-overlay" id="code-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-filename">--</h2>
+                    <p style="font-size: 0.8rem; opacity: 0.5;">SOURCE TRACE & VULNERABILITY ANALYSIS</p>
+                </div>
+                <div class="close-btn" onclick="closeModal()">&times;</div>
+            </div>
+            <div class="code-viewer" id="modal-code"></div>
+            <div class="modal-footer-legend">
+                <div class="leg-item"><div class="leg-box" style="background:rgba(255, 202, 40, 0.4); border-color:#ffca28;"></div> <span class="leg-text">Medium/Change</span></div>
+                <div class="leg-item"><div class="leg-box" style="background:rgba(255, 62, 62, 0.4); border-color:var(--accent-red);"></div> <span class="leg-text">High Risk</span></div>
+                <div class="leg-item"><div class="leg-box" style="background:rgba(139, 0, 0, 0.6); border-color:#8b0000;"></div> <span class="leg-text">Critical Failure</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

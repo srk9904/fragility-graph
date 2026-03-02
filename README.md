@@ -1,46 +1,85 @@
-# FragilityGraph
+# 📉 FragilityGraph: Predictive Blast Radius Analysis
 
-Real-time Structural Debt Prediction using Graph Neural Networks
+**FragilityGraph** is an AI-powered developer tool that identifies "fragile" nodes in your codebase before you commit changes. It combines GNN-based topological analysis with Amazon Bedrock’s reasoning to provide real-time risk assessments.
 
-## Problem Statement
+---
 
-Developers cannot predict which parts of their codebase will break before making changes, leading to fear-driven development that slows feature velocity by 40% in complex projects.
+## 🚀 How it Works
+1.  **Ingestion:** Scans your local Python codebase and generates an AST (Abstract Syntax Tree).
+2.  **Graph Mapping:** Ingests the AST into **Neo4j**, creating a directed graph of function calls and dependencies.
+3.  **Risk Prediction:** A **GraphSAGE (GNN)** model analyzes the graph topology to assign a "Fragility Score" to every function.
+4.  **AI Explanation:** **Amazon Bedrock (Nova Lite)** generates concise, product-ready explanations for high-risk nodes.
+5.  **Extension:** A **VS Code Extension** highlights these risks directly in the editor via heatmaps and hovers.
 
-## Solution
+---
 
-FragilityGraph uses Graph Neural Networks to analyze code dependencies and predict the "blast radius" of code changes before they happen. It provides real-time impact analysis as developers type, showing exactly which components will be affected by their changes.
+## 🛠️ Tech Stack
+-   **Backend:** FastAPI (Python)
+-   **Database:** Neo4j (Graph) & Redis (Caching)
+-   **AI/ML:** Amazon Bedrock (Nova Lite), Boto3, PyTorch (GraphSAGE)
+-   **Storage:** Amazon S3 (Model Weights)
+-   **Frontend:** VS Code Extension (TypeScript)
 
-## Key Features
+---
 
-- **Real-time Impact Analysis** - Instant feedback on code changes with sub-second latency
-- **Fragility Scoring** - Numerical risk scores (0-100) for every component
-- **Blast Radius Visualization** - Interactive graph showing change propagation across services
-- **Temporal Learning** - Analyzes Git history to learn which files historically break together
-- **IDE Integration** - Seamless VS Code extension for developer workflow
+## ⚙️ Local Setup
 
-## How It Works
+### 1. Environment Configuration
+Copy `.env.example` to `.env` and fill in your AWS credentials:
+```bash
+# Required for Bedrock & S3
+AWS_REGION=us-east-1
+BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
+AWS_S3_BUCKET_NAME=your-bucket-name
+```
 
-1. Developer types code → Tree-sitter captures AST changes
-2. Neo4j graph database updates dependency relationships
-3. Graph Neural Network calculates fragility scores
-4. Pulse simulation models change propagation
-5. Results displayed in IDE with visual blast radius
+### 2. Setup Virtual Environment
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
 
-## Tech Stack
+### 3. Install Dependencies
+```bash
+pip install -r backend/requirements.txt
+```
 
-- **Frontend**: TypeScript, VS Code Extension API, Tree-sitter
-- **Backend**: Fastify (Node.js), Python FastAPI
-- **ML**: PyTorch Geometric, GraphSAGE
-- **Database**: Neo4j, Redis
+### 4. Start Infrastructure (Docker)
+Ensure Docker is running, then start the database and cache:
+```bash
+docker-compose up -d
+```
 
-## Documentation
+### 5. Run the Backend
+```bash
+cd backend
+python -m app.main
+```
 
-- [Requirements](requirements.md) - Detailed functional and non-functional requirements
-- [Design Document](design.md) - System architecture and component design
+---
 
-## What Makes Us Different
+## 🧪 Triggering the Main Workflow (Demo)
+We have provided an end-to-end simulation script that validates the entire pipeline (GNN + Bedrock).
 
-Standard AI predicts the next word. FragilityGraph predicts the next break.
+**Run the Demo:**
+```bash
+.\venv\Scripts\python verification/run_demo.py
+```
 
-Unlike code completion tools, FragilityGraph analyzes structural relationships across your entire repository to provide proactive safety guarantees rather than reactive error detection.
+### Ready-to-Run Test Cases
+| Scenario | Input | Expected Output |
+| :--- | :--- | :--- |
+| **Critical Auth** | `validate_session` | Score > 0.8, Explains cascading login failure |
+| **Legacy Payment** | `execute_transaction` | Score > 0.9, Explains high risk of third-party failure |
+| **Utility Refactor** | `format_currency` | Score < 0.3, No alert generated |
 
+---
+
+## 📂 Project Structure
+-   `backend/`: FastAPI application & AI services.
+-   `extension/`: VS Code extension source (TypeScript).
+-   `verification/`: Test scripts and demo simulations.
+-   `documents/`: Architecture and design artifacts.
+
+---
+*Developed for the AWS AI for Bharat Hackathon.*

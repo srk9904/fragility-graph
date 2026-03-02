@@ -1,0 +1,23 @@
+{
+    "name": "Critical DB Corruption Risk",
+    "description": "Modifying a core database write function that has many dependents.",
+    "input": {
+        "file_path": "core/db_engine.py",
+        "nodes": [
+            {
+                "name": "execute_write_raw",
+                "complexity": 18,
+                "calls": [
+                    "connection_pool",
+                    "log_transaction",
+                    "buffer_flush"
+                ]
+            }
+        ]
+    },
+    "expected": {
+        "risk_level": "critical",
+        "min_score": 0.9,
+        "max_score": 1.0
+    }
+}

@@ -1,0 +1,24 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# VS Code
+.vscode/
+out/
+node_modules/
+*.vsix
+
+# Databases / Data
+data/
+neo4j_data/
+
+# OS
+.DS_Store
+Thumbs.db

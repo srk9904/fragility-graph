@@ -1,0 +1,28 @@
+{
+    "name": "Edge Case: Circular Dependency",
+    "description": "Simulate a circular dependency to test pulse simulation stability.",
+    "input": {
+        "file_path": "utils/circular.py",
+        "nodes": [
+            {
+                "name": "ping",
+                "complexity": 2,
+                "calls": [
+                    "pong"
+                ]
+            },
+            {
+                "name": "pong",
+                "complexity": 2,
+                "calls": [
+                    "ping"
+                ]
+            }
+        ]
+    },
+    "expected": {
+        "risk_level": "low",
+        "min_score": 0.2,
+        "max_score": 0.5
+    }
+}
