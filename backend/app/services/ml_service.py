@@ -74,14 +74,15 @@ def compute_fragility_scores(
             new_scores[nid] = (1 - damping) * scores[nid] + damping * (neighbour_sum / degree)
         scores = new_scores
 
-    # ── Normalise to 0-100 ─────────────────────────────────
-    max_score = max(scores.values()) if scores else 1.0
-    if max_score == 0:
-        max_score = 1.0
-
+    # ── Normalise to 0-100 using sigmoid for absolute scaling ──
+    # This avoids the problem where the max node always gets 100.
+    # sigmoid(x*5)*100 gives a spread: low coupling → ~20-40, high → 70-95
     result = {}
     for nid, raw in scores.items():
-        normalised = min((raw / max_score) * 100, 100)
-        result[nid] = round(normalised, 1)
+        # Sigmoid-based absolute scaling
+        normalised = (1 / (1 + math.exp(-raw * 5))) * 100
+        # Shift so that 0 coupling → near 0 (not 50)
+        normalised = max(0, (normalised - 50) * 2)
+        result[nid] = round(min(normalised, 100), 1)
 
     return result

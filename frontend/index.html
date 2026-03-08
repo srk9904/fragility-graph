@@ -6,9 +6,10 @@
     <title>FragilityGraph — Code Fragility Dashboard</title>
     <meta name="description" content="Real-time code fragility analysis using Graph Neural Networks and dependency graph visualisation.">
 
-    <!-- Fonts -->
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Cytoscape -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
@@ -22,7 +23,7 @@
 <header id="topbar">
     <div class="topbar-left">
         <div class="logo">
-            <span class="logo-icon">◈</span>
+            <img src="assets/app_logo_tech" class="logo-img" alt="">
             <span class="logo-text">Fragility<span class="accent">Graph</span></span>
         </div>
         <span class="active-badge" id="activeBadge">READY</span>
@@ -30,7 +31,7 @@
 
     <div class="topbar-controls">
         <button id="btnOpenFolder" class="btn btn-folder" title="Open a project folder">
-            📁 Open Folder
+            <img src="assets/folder.jpg" class="btn-icon-3d" alt=""> Open Folder
         </button>
 
         <div class="file-input-group">
@@ -39,7 +40,7 @@
         </div>
 
         <button id="btnAnalyze" class="btn btn-primary" title="Analyse the selected file">
-            ⚡ Analyze
+            <img src="assets/analysis.jpg" class="btn-icon-3d" alt=""> Analyze
         </button>
     </div>
 
@@ -67,7 +68,7 @@
 
         <!-- Change Impact Bar -->
         <div id="impactBar" class="impact-bar">
-            <span class="impact-label">🔍 Impact Analysis</span>
+            <img src="assets/impact.webp" class="header-icon-3d" alt=""> <span class="impact-label">Impact Analysis</span>
             <input type="text" id="changeInput" class="change-input" placeholder='Describe a change, e.g. "rename array to list" or "remove auth check"…'>
             <button id="btnImpact" class="btn btn-impact">Analyse Impact</button>
         </div>
@@ -77,7 +78,9 @@
 
             <!-- Left: Risk Profile -->
             <div id="riskPanel" class="card">
-                <div class="card-header">RISK PROFILE</div>
+                <div class="card-header">
+                    <img src="assets/risk-gauge.png" class="header-icon-3d" alt=""> RISK PROFILE
+                </div>
                 <div class="card-body">
                     <div class="gauge-container" id="gaugeContainer">
                         <svg class="gauge-svg" viewBox="0 0 120 120">
@@ -109,18 +112,20 @@
             <div id="graphCard" class="card card-graph">
                 <div id="cyContainer"></div>
                 <div id="graphEmpty" class="empty-state">
-                    <p class="empty-icon">◇</p>
-                    <p>Select a file to begin analysis</p>
-                    <p class="subtle">Click a <strong>.py file</strong> in the explorer, then press <strong>Analyze</strong></p>
+                    <img src="assets/app_logo_tech" class="empty-icon-3d" style="width:80px; height:80px; opacity:0.15;" alt="">
+                    <p id="emptyStateMsg">Select a file from the explorer</p>
+                    <p class="subtle" id="emptyStateSubMsg">Press <strong>Analyze</strong> to trace its dependencies.</p>
                 </div>
             </div>
 
             <!-- Right: AI Reasoning -->
             <div id="aiPanel" class="card">
-                <div class="card-header">AI REASONING</div>
+                <div class="card-header">
+                    <img src="assets/digital_mind.avif" class="header-icon-3d" alt=""> AI REASONING
+                </div>
                 <div class="card-body" id="aiContent">
                     <div class="ai-placeholder">
-                        <div class="ai-placeholder-icon">🤖</div>
+                        <div class="ai-placeholder-icon"><i class="fa-solid fa-brain" style="font-size:32px;color:#475569"></i></div>
                         <p>No active trace.</p>
                         <p class="subtle">Select a file or click a node to get AI-powered insights.</p>
                     </div>
@@ -137,7 +142,7 @@
     <div class="modal-card modal-small">
         <div class="modal-header">
             <h3>Open Project Folder</h3>
-            <button class="btn btn-ghost modal-close-btn" onclick="closeFolderModal()">✕</button>
+            <button class="btn btn-ghost modal-close-btn" onclick="closeFolderModal()">&times;</button>
         </div>
         <div class="modal-body">
             <p class="modal-hint">Enter the full path to your project folder:</p>
@@ -155,11 +160,17 @@
     <div class="modal-card">
         <div class="modal-header">
             <h3 id="modalTitle">File Viewer</h3>
-            <button id="modalClose" class="btn btn-ghost">✕</button>
+            <button id="modalClose" class="btn btn-ghost">&times;</button>
         </div>
         <div id="modalExplanation" class="modal-explanation" style="display:none"></div>
         <pre id="modalCode" class="code-block"></pre>
     </div>
+</div>
+
+<!-- ── Edge Tooltip ──────────────────────────────────── -->
+<div id="edgeTooltip">
+    <div class="tooltip-rel" id="tooltipRel"></div>
+    <div id="tooltipReason"></div>
 </div>
 
 <script src="app.js"></script>

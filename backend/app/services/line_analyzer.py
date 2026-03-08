@@ -5,6 +5,7 @@ then returns per-line risk annotations.
 """
 import logging
 import ast
+import os
 from typing import List, Dict, Tuple
 
 logger = logging.getLogger(__name__)
@@ -71,114 +72,193 @@ def compute_line_risks(
     source: str,
     file_path: str = "",
     known_fragile: Dict[str, float] | None = None,
+    focus_path: str = "",
 ) -> List[Dict]:
     """
-    Return per-line risk annotations.
-
-    Parameters
-    ----------
-    source         : raw file content
-    known_fragile  : mapping function_name → fragility_score (0-100)
-
-    Returns
-    -------
-    list of {line_number, risk_score, reason}
+    Return per-line risk annotations with intelligent bidirectional matching.
     """
     if known_fragile is None:
         known_fragile = {}
 
     analysis = analyse_file(source, file_path)
-    lines = source.splitlines()
     risks: List[Dict] = []
+    
+    norm_current = os.path.abspath(file_path).replace("\\", "/") if file_path else ""
+    norm_focus = os.path.abspath(focus_path).replace("\\", "/") if focus_path else ""
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 
-    # Mark call-sites that invoke fragile functions
+    # 1. Bidirectional Dependency Analysis
+    if focus_path and norm_current != norm_focus:
+        # A. Get focus file's analysis for cross-referencing
+        try:
+            with open(focus_path, "r", encoding="utf-8", errors="replace") as f:
+                focus_source = f.read()
+            focus_analysis = analyse_file(focus_source, focus_path)
+        except:
+            focus_analysis = {"definitions": [], "calls": [], "imports": []}
+
+        # Case 1: THIS file imports the FOCUS (Dependent)
+        found_import = False
+        for imp in analysis["imports"]:
+            module_path = imp["module"].replace(".", "/")
+            target_file = os.path.join(project_root, f"{module_path}.py")
+            if not os.path.isfile(target_file):
+                target_file = os.path.join(project_root, module_path, "__init__.py")
+
+            if os.path.isfile(target_file) and os.path.abspath(target_file).replace("\\", "/") == norm_focus:
+                risks.append({
+                    "line_number": imp["line"],
+                    "risk_score": 60.0,
+                    "reason": f"Direct Impact: This file imports the focused component `{os.path.basename(focus_path)}`."
+                })
+                found_import = True
+        
+        # If we import the focus, also check for calls to focus's functions
+        if found_import:
+            focus_defs = {d["name"] for d in focus_analysis["definitions"]}
+            for call in analysis["calls"]:
+                name = call["name"].split(".")[-1]
+                if name in focus_defs:
+                    risks.append({
+                        "line_number": call["line"],
+                        "risk_score": 75.0,
+                        "reason": f"Active Usage: Calls function `{name}` from the focused fragile module."
+                    })
+
+        # Case 2: FOCUS imports THIS (Dependency)
+        # Highlight our functions that the focus is actually calling
+        our_defs = {d["name"]: d for d in analysis["definitions"]}
+        for f_call in focus_analysis["calls"]:
+            fname = f_call["name"].split(".")[-1]
+            if fname in our_defs:
+                d = our_defs[fname]
+                risks.append({
+                    "line_number": d["line_start"],
+                    "line_end": d["line_end"],
+                    "risk_score": 55.0,
+                    "reason": f"Structural Usage: This {d['type']} is being used by the focused component `{os.path.basename(focus_path)}`."
+                })
+
+    # 2. Fragility-based highlighting (Internal)
     for call in analysis["calls"]:
-        fn = call["name"].split(".")[-1]  # strip class prefix
+        fn = call["name"].split(".")[-1]
         if fn in known_fragile:
             score = known_fragile[fn]
-            
-            # Generate more unique reasons
-            if score > 90:
-                reason = f"Calls fatal dependency `{fn}` (score {score:.0f}). High risk of system-wide failure."
-            elif score > 70:
-                reason = f"Dependency on critical component `{fn}` (score {score:.0f}). Potential structural bottleneck."
-            elif score > 40:
-                reason = f"Invocation of `{fn}` (score {score:.0f}). Moderate fragility propagation detected."
-            else:
-                reason = f"Linked to `{fn}` (score {score:.0f}). Minor fragility risk."
+            risks.append({
+                "line_number": call["line"],
+                "risk_score": round(score, 1),
+                "reason": f"Internal Risk: Calls fragile `{fn}` (score {score:.0f}).",
+            })
 
-            risks.append(
-                {
-                    "line_number": call["line"],
-                    "risk_score": round(score, 1),
-                    "reason": reason,
-                }
-            )
-
-    # Mark definitions that are themselves fragile
     for defn in analysis["definitions"]:
         if defn["name"] in known_fragile:
             score = known_fragile[defn["name"]]
+            risks.append({
+                "line_number": defn["line_start"],
+                "line_end": defn["line_end"],
+                "risk_score": round(score, 1),
+                "reason": f"Fragility Source: Critical {defn['type']} definition `{defn['name']}` (score {score:.0f}).",
+            })
+
+    # Sort and deduplicate
+    unique_risks = {}
+    for r in risks:
+        ln = r["line_number"]
+        if ln not in unique_risks or r["risk_score"] > unique_risks[ln]["risk_score"]:
+            unique_risks[ln] = r
             
-            if score > 90:
-                reason = f"Fatal {defn['type']} definition `{defn['name']}` (score {score:.0f})."
-            elif score > 40:
-                reason = f"Critical {defn['type']} `{defn['name']}` (score {score:.0f}). High maintenance complexity."
-            else:
-                reason = f"Moderate fragility in {defn['type']} `{defn['name']}` (score {score:.0f})."
-
-            risks.append(
-                {
-                    "line_number": defn["line_start"],
-                    "risk_score": round(score, 1),
-                    "reason": reason,
-                }
-            )
-
-    return risks
+    return list(unique_risks.values())
 
 
-def extract_graph_elements(source: str, file_path: str) -> Tuple[List[Dict], List[Dict]]:
+def extract_graph_elements(
+    source: str, file_path: str, max_depth: int = 2
+) -> Tuple[List[Dict], List[Dict]]:
     """
-    Extract nodes and edges from a Python file for the dependency graph.
-
-    Returns (nodes_list, edges_list)
+    Build a project-wide BIDIRECTIONAL neighborhood graph (dist <= max_depth).
     """
-    analysis = analyse_file(source, file_path)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    
+    def _normalize(p: str) -> str:
+        return os.path.abspath(p).replace("\\", "/")
+
+    norm_root = _normalize(file_path)
+    
+    # 1. Build the full project-wide import map
+    full_graph: Dict[str, List[str]] = {} # source_file -> list of target_files
+    all_files = []
+    for root, _, files in os.walk(project_root):
+        if any(d in root for d in ["venv", ".git", "__pycache__", "node_modules"]):
+            continue
+        for f in files:
+            if f.endswith(".py"):
+                all_files.append(os.path.join(root, f))
+
+    for fp in all_files:
+        try:
+            with open(fp, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+            analysis = analyse_file(content, fp)
+            norm_fp = _normalize(fp)
+            targets = []
+            for imp in analysis["imports"]:
+                m_path = imp["module"].replace(".", "/")
+                t_file = os.path.join(project_root, f"{m_path}.py")
+                if not os.path.isfile(t_file):
+                    t_file = os.path.join(project_root, m_path, "__init__.py")
+                if os.path.isfile(t_file):
+                    targets.append(_normalize(t_file))
+            full_graph[norm_fp] = targets
+        except:
+            continue
+
+    # 2. Extract bidirectional neighborhood (BFS)
+    neighborhood_nodes: set = {norm_root}
+    queue: List[Tuple[str, int]] = [(norm_root, 0)]
+    visited = {norm_root}
+    
+    while queue:
+        curr, dist = queue.pop(0)
+        if dist >= max_depth:
+            continue
+        
+        # Outgoing (Current imports X)
+        for target in full_graph.get(curr, []):
+            if target not in visited:
+                visited.add(target)
+                neighborhood_nodes.add(target)
+                queue.append((target, dist+1))
+        
+        # Incoming (X imports Current)
+        for source_node, targets in full_graph.items():
+            if curr in targets:
+                if source_node not in visited:
+                    visited.add(source_node)
+                    neighborhood_nodes.add(source_node)
+                    queue.append((source_node, dist+1))
+
+    # 3. Collect final nodes and edges
     nodes: List[Dict] = []
     edges: List[Dict] = []
-    defined_names: set = set()
-
-    for defn in analysis["definitions"]:
-        node_id = f"{file_path}::{defn['name']}"
-        nodes.append(
-            {
-                "id": node_id,
-                "label": defn["name"],
-                "type": defn["type"],
-                "file_path": file_path,
-                "line_number": defn["line_start"],
-                "fragility": 0.0,
-            }
-        )
-        defined_names.add(defn["name"])
-
-    # Build call edges between definitions within the same file
-    for call in analysis["calls"]:
-        callee = call["name"].split(".")[-1]
-        if callee in defined_names:
-            # Find which definition contains this call line
-            caller_id = None
-            for defn in analysis["definitions"]:
-                if defn["line_start"] <= call["line"] <= defn["line_end"]:
-                    caller_id = f"{file_path}::{defn['name']}"
-                    break
-            if caller_id:
-                target_id = f"{file_path}::{callee}"
-                if caller_id != target_id:
-                    edges.append(
-                        {"source": caller_id, "target": target_id, "relationship": "CALLS"}
-                    )
+    
+    for node_id in neighborhood_nodes:
+        nodes.append({
+            "id": node_id,
+            "label": os.path.basename(node_id),
+            "type": "file",
+            "file_path": node_id,
+            "line_number": 1,
+            "fragility": 0.0,
+        })
+        
+    for source_node, targets in full_graph.items():
+        if source_node in neighborhood_nodes:
+            for target in targets:
+                if target in neighborhood_nodes:
+                    edges.append({
+                        "source": source_node,
+                        "target": target,
+                        "relationship": "IMPORTS",
+                    })
 
     return nodes, edges
 

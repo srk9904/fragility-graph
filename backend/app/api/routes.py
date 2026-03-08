@@ -92,7 +92,10 @@ def _build_tree(path: str) -> dict:
 
 # ── Line risks ─────────────────────────────────────────────
 @router.get("/line_risks", response_model=LineRiskResponse)
-def get_line_risks(file_path: str = Query(..., description="Absolute path to file")):
+def get_line_risks(
+    file_path: str = Query(..., description="Absolute path to file"),
+    focus_path: Optional[str] = Query(None, description="Focused root file path"),
+):
     """Parse a file and return per-line risk annotations."""
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -106,7 +109,9 @@ def get_line_risks(file_path: str = Query(..., description="Absolute path to fil
         if node.get("fragility", 0) > 0:
             fragile_map[node.get("label", "")] = node["fragility"]
 
-    risks = line_analyzer.compute_line_risks(content, file_path, fragile_map)
+    risks = line_analyzer.compute_line_risks(
+        content, file_path, fragile_map, focus_path=focus_path or ""
+    )
 
     return LineRiskResponse(
         file_path=file_path,
@@ -183,7 +188,7 @@ def analyze_file(file_path: str = Query(...)):
 def analyze_focused(file_path: str = Query(...)):
     """
     Focused analysis: analyse one file, compute fragility,
-    and return graph + line risks + AI file summary.
+    and return file-level graph + line risks + AI file summary.
     """
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -191,42 +196,91 @@ def analyze_focused(file_path: str = Query(...)):
     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
         content = f.read()
 
-    # Extract graph elements for this file
-    nodes, edges = line_analyzer.extract_graph_elements(content, file_path)
+    # ── 1. File-level graph for visualization (recursive, max 3 levels) ──
+    graph_nodes, graph_edges = line_analyzer.extract_graph_elements(content, file_path)
 
-    # Push to Neo4j
+    # Push file-level graph to Neo4j
     adapter = Neo4jAdapter.get_instance()
-    adapter.bulk_upsert(nodes, edges)
+    adapter.bulk_upsert(graph_nodes, graph_edges)
 
-    # Compute fragility scores
-    scores = ml_service.compute_fragility_scores(nodes, edges)
-    max_fragility = 0.0
-    for node in nodes:
-        score = scores.get(node["id"], 0.0)
+    # ── 2. Function-level analysis for ML scoring & line risks ──
+    analysis = line_analyzer.analyse_file(content, file_path)
+    func_nodes = []
+    func_edges = []
+    defined_names = set()
+
+    for defn in analysis["definitions"]:
+        node_id = f"{file_path}::{defn['name']}"
+        func_nodes.append({
+            "id": node_id,
+            "label": defn["name"],
+            "type": defn["type"],
+            "file_path": file_path,
+            "line_number": defn["line_start"],
+            "fragility": 0.0,
+        })
+        defined_names.add(defn["name"])
+
+    for call in analysis["calls"]:
+        callee = call["name"].split(".")[-1]
+        if callee in defined_names:
+            caller_id = None
+            for defn in analysis["definitions"]:
+                if defn["line_start"] <= call["line"] <= defn["line_end"]:
+                    caller_id = f"{file_path}::{defn['name']}"
+                    break
+            if caller_id:
+                target_id = f"{file_path}::{callee}"
+                if caller_id != target_id:
+                    func_edges.append({
+                        "source": caller_id,
+                        "target": target_id,
+                        "relationship": "CALLS",
+                    })
+
+    # ── 3. Compute fragility scores ──
+    # A. Scale-level scores for the neighborhood graph (so neighbors aren't 0)
+    file_scores = ml_service.compute_fragility_scores(graph_nodes, graph_edges)
+    for gn in graph_nodes:
+        gn["fragility"] = file_scores.get(gn["id"], 0.0)
+
+    # B. Detailed function-level scores for the root file
+    func_scores = ml_service.compute_fragility_scores(func_nodes, func_edges)
+    max_root_fragility = 0.0
+    for node in func_nodes:
+        score = func_scores.get(node["id"], 0.0)
         node["fragility"] = score
-        max_fragility = max(max_fragility, score)
-        adapter.update_fragility_score(node["id"], score)
+        max_root_fragility = max(max_root_fragility, score)
 
-    # Line risks
-    fragile_map = {n["label"]: n["fragility"] for n in nodes if n["fragility"] > 0}
-    line_risks = line_analyzer.compute_line_risks(content, file_path, fragile_map)
+    # Root file node in graph_nodes should use the max internal fragility for accuracy
+    norm_root = os.path.abspath(file_path).replace("\\", "/")
+    for gn in graph_nodes:
+        if gn["id"] == norm_root:
+            gn["fragility"] = max_root_fragility
+            break
 
-    # AI file summary
+    # ── 4. Line risks ──
+    fragile_map = {n["label"]: n["fragility"] for n in func_nodes if n["fragility"] > 0}
+    line_risks = line_analyzer.compute_line_risks(
+        content, file_path, fragile_map, focus_path=file_path
+    )
+
+    # ── 5. AI file summary ──
     summary = bedrock_service.summarize_file(
         file_path=file_path,
         content=content,
-        node_count=len(nodes),
-        edge_count=len(edges),
-        max_fragility=max_fragility,
+        node_count=len(func_nodes),
+        edge_count=len(func_edges),
+        max_fragility=max_root_fragility,
     )
 
     return {
         "file_path": file_path,
-        "nodes": nodes,
-        "edges": edges,
+        "nodes": graph_nodes,       # file-level nodes only
+        "edges": graph_edges,       # file-to-file edges only
         "line_risks": line_risks,
         "summary": summary,
-        "max_fragility": max_fragility,
+        "max_fragility": max_root_fragility,
     }
 
 

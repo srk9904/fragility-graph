@@ -55,6 +55,9 @@ body {
     font-size: 13px;
     color: var(--text-primary);
     background: var(--bg-primary);
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(167, 139, 250, 0.05) 0%, transparent 40%);
     overflow: hidden;
 }
 
@@ -100,10 +103,14 @@ body {
     gap: 6px;
 }
 
-.logo-icon {
-    font-size: 20px;
-    color: var(--accent);
-    filter: drop-shadow(0 0 8px var(--accent-glow));
+.logo-img {
+    height: 36px;
+    width: auto;
+    mix-blend-mode: screen;
+    filter: brightness(1.1) saturate(1.3) drop-shadow(0 0 10px rgba(56, 189, 248, 0.4));
+    background: transparent;
+    border-radius: 0;
+    object-fit: contain;
 }
 
 .logo-text {
@@ -153,6 +160,28 @@ body {
     padding: 7px 14px !important;
     gap: 4px;
     white-space: nowrap;
+}
+
+.btn-icon-3d {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    background: transparent !important;
+    /* NEW */
+    mix-blend-mode: screen;
+    filter: brightness(2.2) saturate(1.3) contrast(1.1) drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
+    flex-shrink: 0;
+    border-radius: 4px;
+}
+
+.btn-analysing {
+    opacity: 0.8 !important;
+    cursor: wait !important;
+    pointer-events: none;
+}
+
+.btn-analysing .btn-icon-3d {
+    animation: rotate 1s linear infinite;
 }
 
 .btn-folder:hover {
@@ -383,10 +412,13 @@ body {
 }
 
 .tree-item .icon {
-    width: 14px;
+    width: 18px;
     text-align: center;
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tree-dir>.icon {
@@ -417,6 +449,16 @@ body {
     border-radius: var(--radius-sm);
     padding: 6px 12px;
     flex-shrink: 0;
+}
+
+/* NEW */
+.impact-bar .header-icon-3d {
+    filter: brightness(1.0) saturate(1.4) contrast(1.5) drop-shadow(0 0 6px rgba(167, 139, 250, 0.3));
+    border-radius: 0;
+    background: transparent !important;
+    mix-blend-mode: screen;
+    width: 32px;
+    height: 32px;
 }
 
 .impact-label {
@@ -468,6 +510,14 @@ body {
     flex-direction: column;
     overflow: hidden;
     position: relative;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+    transform-style: flat;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-accent);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), 0 0 15px rgba(56, 189, 248, 0.04);
 }
 
 .card::before {
@@ -475,8 +525,29 @@ body {
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
-    background: linear-gradient(180deg, rgba(56, 189, 248, 0.03) 0%, transparent 40%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
     pointer-events: none;
+    z-index: 2;
+}
+
+.header-icon-3d {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    margin-right: 8px;
+    background: transparent !important;
+    mix-blend-mode: multiply;
+    filter: brightness(4.0) saturate(1.4) drop-shadow(0 0 5px rgba(255, 255, 255, 0.08));
+    flex-shrink: 0;
+    border-radius: 5px;
+}
+
+/* digital_mind.avif is a real photo — screen mode would blow it out */
+#aiPanel .header-icon-3d {
+    mix-blend-mode: normal;
+    border-radius: 6px;
+    opacity: 0.88;
+    filter: brightness(0.9) saturate(1.1);
 }
 
 .card-header {
@@ -487,6 +558,8 @@ body {
     color: var(--text-muted);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
 }
 
 .card-body {
@@ -785,11 +858,57 @@ body {
     max-height: 280px;
 }
 
+/* ── Custom Animations ────────────────────────────────── */
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fa-python {
+    color: #3776ab;
+}
+
+.fa-js {
+    color: #f7df1e;
+}
+
+.fa-html5 {
+    color: #e34f26;
+}
+
+.fa-css3-alt {
+    color: #1572b6;
+}
+
 @keyframes slideUp {
     from {
-        transform: translateY(20px);
+        transform: translateZ(-200px) translateY(40px);
         opacity: 0;
     }
+
+    to {
+        transform: translateZ(0) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* --- Asset Icons --- */
+.h-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px var(--accent-glow));
+}
+
+.h-icon-large {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
 }
 
 .modal-header {
@@ -944,4 +1063,319 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
+}
+
+/* ── Code Line Tooltip ────────────────────────────────── */
+.code-line {
+    position: relative;
+}
+
+.code-line-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50px;
+    right: 16px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-accent);
+    border-radius: 8px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    z-index: 100;
+    pointer-events: none;
+    white-space: normal;
+    max-width: 480px;
+}
+
+.code-line:hover .code-line-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tooltip-severity {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tooltip-severity.risk-high {
+    color: var(--red);
+}
+
+.tooltip-severity.risk-medium {
+    color: var(--yellow);
+}
+
+.tooltip-severity.risk-low {
+    color: var(--green);
+}
+
+.tooltip-text {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.tooltip-line-ref {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* ── Risk Legend ──────────────────────────────────────── */
+.risk-legend {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.risk-legend-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.risk-legend-items {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.risk-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-critical {
+    background: var(--red);
+    box-shadow: 0 0 6px var(--red-glow);
+}
+
+.dot-elevated {
+    background: var(--yellow);
+    box-shadow: 0 0 6px var(--yellow-glow);
+}
+
+.dot-minor {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green-glow);
+}
+
+.legend-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-muted);
+}
+
+/* ── Empty-state icon blending ────────────────────────── */
+.empty-icon-3d {
+    mix-blend-mode: screen;
+    filter: brightness(0.8);
+    background: transparent;
+    border-radius: 8px;
+    object-fit: contain;
+    opacity: 0.15;
+}
+
+/* ── Edge Tooltip ───────────────────────────────────── */
+#edgeTooltip {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-primary);
+    pointer-events: none;
+    z-index: 9999;
+    max-width: 220px;
+    line-height: 1.5;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    display: none;
+}
+
+#edgeTooltip .tooltip-rel {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+/* ── Container isolation for blend modes ──────────── */
+/* NEW */
+.card-header {
+    isolation: isolate;
+}
+
+/* ── Graph Loading Overlay ─────────────────────────────── */
+#graphLoadingOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 14, 39, 0.88);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    gap: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+#graphLoadingOverlay p {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    animation: pulse-dot 1.5s infinite;
+}
+
+.graph-loader {
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.graph-loader .node {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    animation: node-appear 1.8s ease-in-out infinite;
+}
+
+.graph-loader .node:nth-child(1) {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    animation-delay: 0s;
+}
+
+.graph-loader .node:nth-child(2) {
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    animation-delay: 0.3s;
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.graph-loader .node:nth-child(3) {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    animation-delay: 0.6s;
+    background: #a78bfa;
+    box-shadow: 0 0 10px rgba(167, 139, 250, 0.4);
+}
+
+.graph-loader .node:nth-child(4) {
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    animation-delay: 0.9s;
+    background: #eab308;
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+}
+
+.graph-loader .node:nth-child(5) {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: 1.2s;
+    width: 14px;
+    height: 14px;
+}
+
+.graph-loader svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.graph-loader svg line {
+    stroke: var(--accent);
+    stroke-width: 1;
+    stroke-opacity: 0.3;
+    animation: edge-pulse 1.8s ease-in-out infinite;
+}
+
+.graph-loader svg line:nth-child(2) {
+    animation-delay: 0.3s;
+    stroke: #ef4444;
+}
+
+.graph-loader svg line:nth-child(3) {
+    animation-delay: 0.6s;
+    stroke: #a78bfa;
+}
+
+.graph-loader svg line:nth-child(4) {
+    animation-delay: 0.9s;
+    stroke: #eab308;
+}
+
+@keyframes node-appear {
+
+    0%,
+    100% {
+        transform: translateX(-50%) scale(0.6);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: translateX(-50%) scale(1.2);
+        opacity: 1;
+    }
+}
+
+@keyframes edge-pulse {
+
+    0%,
+    100% {
+        stroke-opacity: 0.1;
+    }
+
+    50% {
+        stroke-opacity: 0.6;
+    }
 }

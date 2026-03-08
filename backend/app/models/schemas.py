@@ -34,6 +34,7 @@ class GraphData(BaseModel):
 # ── Line Risk ─────────────────────────────────────────────
 class LineRisk(BaseModel):
     line_number: int
+    line_end: Optional[int] = None
     risk_score: float
     reason: str
 
