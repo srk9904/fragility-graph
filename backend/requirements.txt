@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+neo4j
+redis
+boto3
+websockets

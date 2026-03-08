@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FragilityGraph — Code Fragility Dashboard</title>
+    <meta name="description" content="Real-time code fragility analysis using Graph Neural Networks and dependency graph visualisation.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Cytoscape -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── Top Bar ──────────────────────────────────────────── -->
+<header id="topbar">
+    <div class="topbar-left">
+        <div class="logo">
+            <span class="logo-icon">◈</span>
+            <span class="logo-text">Fragility<span class="accent">Graph</span></span>
+        </div>
+        <span class="active-badge" id="activeBadge">READY</span>
+    </div>
+
+    <div class="topbar-controls">
+        <button id="btnOpenFolder" class="btn btn-folder" title="Open a project folder">
+            📁 Open Folder
+        </button>
+
+        <div class="file-input-group">
+            <span class="file-input-label">FILE:</span>
+            <input type="text" id="filePathInput" class="file-path-input" placeholder="Select a file from explorer or type path…" readonly>
+        </div>
+
+        <button id="btnAnalyze" class="btn btn-primary" title="Analyse the selected file">
+            ⚡ Analyze
+        </button>
+    </div>
+
+    <div class="topbar-right">
+        <div class="status-pill" id="statusPill">
+            <span class="status-dot"></span>
+            <span class="status-label">Connecting…</span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Main Layout ─────────────────────────────────────── -->
+<main id="app">
+
+    <!-- Left: File Explorer -->
+    <aside id="sidebar">
+        <div class="panel-header">
+            <h2>Explorer</h2>
+        </div>
+        <div id="fileTree" class="file-tree"></div>
+    </aside>
+
+    <!-- Content area (3-panel) -->
+    <div id="contentArea">
+
+        <!-- Change Impact Bar -->
+        <div id="impactBar" class="impact-bar">
+            <span class="impact-label">🔍 Impact Analysis</span>
+            <input type="text" id="changeInput" class="change-input" placeholder='Describe a change, e.g. "rename array to list" or "remove auth check"…'>
+            <button id="btnImpact" class="btn btn-impact">Analyse Impact</button>
+        </div>
+
+        <!-- Three panels row -->
+        <div id="panelsRow">
+
+            <!-- Left: Risk Profile -->
+            <div id="riskPanel" class="card">
+                <div class="card-header">RISK PROFILE</div>
+                <div class="card-body">
+                    <div class="gauge-container" id="gaugeContainer">
+                        <svg class="gauge-svg" viewBox="0 0 120 120">
+                            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+                            <circle class="gauge-fill" id="gaugeFill" cx="60" cy="60" r="50" />
+                        </svg>
+                        <div class="gauge-value" id="gaugeValue">--</div>
+                        <div class="gauge-label">FRAGILITY</div>
+                    </div>
+
+                    <div class="metric-cards">
+                        <div class="metric-card">
+                            <span class="metric-name">Structural Risk</span>
+                            <span class="metric-value" id="metricStructural">--</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-name">Blast Radius</span>
+                            <span class="metric-value" id="metricBlast">--</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-name">Confidence</span>
+                            <span class="metric-value" id="metricConfidence">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Centre: Graph -->
+            <div id="graphCard" class="card card-graph">
+                <div id="cyContainer"></div>
+                <div id="graphEmpty" class="empty-state">
+                    <p class="empty-icon">◇</p>
+                    <p>Select a file to begin analysis</p>
+                    <p class="subtle">Click a <strong>.py file</strong> in the explorer, then press <strong>Analyze</strong></p>
+                </div>
+            </div>
+
+            <!-- Right: AI Reasoning -->
+            <div id="aiPanel" class="card">
+                <div class="card-header">AI REASONING</div>
+                <div class="card-body" id="aiContent">
+                    <div class="ai-placeholder">
+                        <div class="ai-placeholder-icon">🤖</div>
+                        <p>No active trace.</p>
+                        <p class="subtle">Select a file or click a node to get AI-powered insights.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<!-- ── Folder Input Modal ──────────────────────────────── -->
+<div id="folderModal" class="modal-overlay" style="display:none">
+    <div class="modal-card modal-small">
+        <div class="modal-header">
+            <h3>Open Project Folder</h3>
+            <button class="btn btn-ghost modal-close-btn" onclick="closeFolderModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-hint">Enter the full path to your project folder:</p>
+            <input type="text" id="folderPathInput" class="folder-input" placeholder="D:/projects/my-app">
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeFolderModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="openFolder()">Open</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Code Modal ──────────────────────────────────────── -->
+<div id="codeModal" class="modal-overlay" style="display:none">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="modalTitle">File Viewer</h3>
+            <button id="modalClose" class="btn btn-ghost">✕</button>
+        </div>
+        <div id="modalExplanation" class="modal-explanation" style="display:none"></div>
+        <pre id="modalCode" class="code-block"></pre>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
