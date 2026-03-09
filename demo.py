@@ -3,7 +3,7 @@ def central_utility(data):
     This is a 'hub' function. 
     Many other functions depend on it, so it should have HIGH FRAGILITY.
     """
-    return data * 1.05
+    return data * 1.00
 
 def calculation_engine(val):
     # Depends on central_utility
@@ -21,4 +21,4 @@ def final_report(val):
     report_val = calculation_engine(val)
     return f"Final Value: {report_val}"
 
-# Note: Save this file to see the extension in action!
+
